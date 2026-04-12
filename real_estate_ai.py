@@ -964,14 +964,14 @@ class CombinedRealEstateModel(mlflow.pyfunc.PythonModel):
             data=pd.DataFrame(json.loads(row["payload"]))
             try:
                 if mtype=="avm":
-                    for c in AVM_NUMERIC: data[c]=pd.to_numeric(data.get(c,0),errors="coerce").fillna(0)
+                    for c in AVM_NUMERIC: data[c]=pd.to_numeric(data.get(c,pd.Series([0]*len(data))),errors="coerce").fillna(0)
                     for c in AVM_BINARY:  data[c]=data.get(c,pd.Series([0]*len(data))).fillna(0).astype(int)
                     for c in AVM_CATEGORICAL: data[c]=data.get(c,pd.Series(["unknown"]*len(data))).fillna("unknown")
                     for c in AVM_ALL:
                         if c not in data: data[c]=0 if c in AVM_NUMERIC+AVM_BINARY else "unknown"
                     results.append(self.avm.predict_with_interval(data[AVM_ALL]).to_json(orient="records"))
                 elif mtype=="lead_scoring":
-                    for c in LEAD_NUMERIC: data[c]=pd.to_numeric(data.get(c,0),errors="coerce").fillna(0)
+                    for c in LEAD_NUMERIC: data[c]=pd.to_numeric(data.get(c,pd.Series([0]*len(data))),errors="coerce").fillna(0)
                     for c in LEAD_BINARY:  data[c]=data.get(c,pd.Series([0]*len(data))).fillna(0).astype(int)
                     for c in LEAD_CAT:     data[c]=data.get(c,pd.Series(["unknown"]*len(data))).fillna("unknown")
                     for c in LEAD_ALL:
