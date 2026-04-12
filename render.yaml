@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: real-estate-ai
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABRICKS_HOST
+        value: https://dbc-496010ba-2046.cloud.databricks.com
+      - key: DATABRICKS_TOKEN
+        sync: false

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real Estate AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .tab-btn.active { border-bottom: 3px solid #6366f1; color: #6366f1; font-weight: 600; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .spinner { border: 3px solid #e5e7eb; border-top: 3px solid #6366f1; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    select, input { outline: none; }
+    select:focus, input:focus { ring: 2px; ring-color: #6366f1; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center gap-3">
+    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">AI</div>
+    <span class="text-lg font-semibold text-white">Real Estate Intelligence</span>
+    <span class="ml-auto text-xs text-gray-500">Powered by Databricks MLflow</span>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-4 py-8">
+
+    <!-- Tab bar -->
+    <div class="flex gap-1 border-b border-gray-800 mb-8">
+      <button onclick="switchTab('avm')"      id="tab-avm"      class="tab-btn active px-5 py-3 text-sm text-gray-400 hover:text-white transition-colors">Property Valuation</button>
+      <button onclick="switchTab('lead')"     id="tab-lead"     class="tab-btn px-5 py-3 text-sm text-gray-400 hover:text-white transition-colors">Lead Scoring</button>
+      <button onclick="switchTab('forecast')" id="tab-forecast" class="tab-btn px-5 py-3 text-sm text-gray-400 hover:text-white transition-colors">Price Forecast</button>
+    </div>
+
+    <!-- ── AVM Panel ──────────────────────────────────────────────── -->
+    <div id="panel-avm" class="tab-panel active">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Form -->
+        <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+          <h2 class="text-base font-semibold mb-1">Automated Valuation Model</h2>
+          <p class="text-xs text-gray-500 mb-5">Get an instant AI estimate for any US property.</p>
+          <form id="avm-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Bedrooms</label>
+                <input name="bed" type="number" min="0" max="20" placeholder="3"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Bathrooms</label>
+                <input name="bath" type="number" min="0" max="20" step="0.5" placeholder="2"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">House Size (sq ft)</label>
+                <input name="house_size" type="number" min="0" placeholder="1800"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Lot Size (acres)</label>
+                <input name="acre_lot" type="number" min="0" step="0.01" placeholder="0.25"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">State</label>
+              <select name="state" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <option value="">Select state...</option>
+                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+                <option>Wisconsin</option><option>Wyoming</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Zip Code</label>
+                <input name="zip_code" type="text" maxlength="5" placeholder="90210"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Property Type</label>
+                <select name="property_type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                  <option value="SFR">Single Family</option>
+                  <option value="CONDO">Condo</option>
+                  <option value="MULTI_FAMILY">Multi-Family</option>
+                  <option value="RURAL_RESIDENTIAL">Rural Residential</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit"
+              class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+              <span id="avm-btn-text">Estimate Value</span>
+              <div id="avm-spinner" class="spinner hidden"></div>
+            </button>
+          </form>
+        </div>
+
+        <!-- Result -->
+        <div id="avm-result" class="hidden bg-gray-900 rounded-2xl p-6 border border-gray-800 flex flex-col justify-center">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-4">AI Estimate</p>
+          <div class="text-4xl font-bold text-white mb-1" id="avm-estimate">—</div>
+          <div class="text-sm text-gray-400 mb-6" id="avm-range">—</div>
+          <div class="w-full bg-gray-800 rounded-full h-2 mb-1 relative">
+            <div id="avm-bar" class="bg-indigo-500 h-2 rounded-full" style="width:50%"></div>
+            <div id="avm-marker" class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-indigo-500" style="left:50%;transform:translate(-50%,-50%)"></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500 mt-1">
+            <span id="avm-low-label">Low</span>
+            <span id="avm-high-label">High</span>
+          </div>
+          <div class="mt-6 bg-gray-800 rounded-xl p-4 text-xs text-gray-400">
+            <p>This estimate is based on comparable sales and market data for the zip code and property type. Actual value may vary.</p>
+          </div>
+        </div>
+
+        <div id="avm-error" class="hidden lg:col-span-1 bg-red-950 border border-red-800 rounded-2xl p-4 text-sm text-red-300"></div>
+      </div>
+    </div>
+
+    <!-- ── Lead Scoring Panel ─────────────────────────────────────── -->
+    <div id="panel-lead" class="tab-panel">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+          <h2 class="text-base font-semibold mb-1">Motivated Seller Scoring</h2>
+          <p class="text-xs text-gray-500 mb-5">Score how likely a homeowner is to sell.</p>
+          <form id="lead-form" class="space-y-4">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Years Since Last Sale</label>
+              <input name="years_since_last_sale" type="number" min="0" max="50" step="0.5" placeholder="8"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Current Listing Price ($)</label>
+              <input name="price" type="number" min="0" placeholder="450000"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Bedrooms</label>
+                <input name="bed" type="number" min="0" max="20" placeholder="3"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">House Size (sq ft)</label>
+                <input name="house_size" type="number" min="0" placeholder="1800"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">State</label>
+              <select name="state" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <option value="">Select state...</option>
+                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+                <option>Wisconsin</option><option>Wyoming</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Property Type</label>
+              <select name="property_type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <option value="SFR">Single Family</option>
+                <option value="CONDO">Condo</option>
+                <option value="MULTI_FAMILY">Multi-Family</option>
+                <option value="RURAL_RESIDENTIAL">Rural Residential</option>
+              </select>
+            </div>
+            <button type="submit"
+              class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+              <span id="lead-btn-text">Score Lead</span>
+              <div id="lead-spinner" class="spinner hidden"></div>
+            </button>
+          </form>
+        </div>
+
+        <!-- Result -->
+        <div id="lead-result" class="hidden bg-gray-900 rounded-2xl p-6 border border-gray-800 flex flex-col items-center justify-center">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-6">Motivation Score</p>
+          <div class="relative w-40 h-40 mb-4">
+            <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#1f2937" stroke-width="12"/>
+              <circle id="lead-arc" cx="60" cy="60" r="50" fill="none" stroke="#6366f1"
+                stroke-width="12" stroke-linecap="round"
+                stroke-dasharray="314" stroke-dashoffset="314"
+                style="transition: stroke-dashoffset 1s ease, stroke 0.5s ease"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="lead-score-pct" class="text-3xl font-bold text-white">—</span>
+              <span id="lead-tier-label" class="text-xs font-medium mt-1">—</span>
+            </div>
+          </div>
+          <div id="lead-tier-badge" class="px-4 py-1.5 rounded-full text-sm font-semibold mb-6">—</div>
+          <div class="w-full space-y-2 text-sm">
+            <div class="flex justify-between text-gray-400 text-xs">
+              <span>Cool (&lt;35%)</span><span>Warm (35–65%)</span><span>Hot (&gt;65%)</span>
+            </div>
+            <div class="w-full bg-gray-800 rounded-full h-2">
+              <div class="h-2 rounded-full bg-gradient-to-r from-blue-500 via-yellow-400 to-red-500" style="width:100%"></div>
+            </div>
+            <div class="w-full relative h-2">
+              <div id="lead-pointer" class="absolute top-0 w-2 h-2 bg-white rounded-full -translate-x-1/2" style="left:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="lead-error" class="hidden lg:col-span-1 bg-red-950 border border-red-800 rounded-2xl p-4 text-sm text-red-300"></div>
+      </div>
+    </div>
+
+    <!-- ── Price Forecast Panel ───────────────────────────────────── -->
+    <div id="panel-forecast" class="tab-panel">
+      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 mb-6">
+        <h2 class="text-base font-semibold mb-1">Price Trend Forecast</h2>
+        <p class="text-xs text-gray-500 mb-5">12-month price forecast by state and property type.</p>
+        <form id="forecast-form" class="flex flex-wrap gap-4 items-end">
+          <div class="flex-1 min-w-40">
+            <label class="block text-xs text-gray-400 mb-1">State</label>
+            <select name="state" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="">Select state...</option>
+              <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+              <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+              <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+              <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+              <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+              <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+              <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+              <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+              <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+              <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+              <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+              <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+              <option>Wisconsin</option><option>Wyoming</option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-40">
+            <label class="block text-xs text-gray-400 mb-1">Property Type</label>
+            <select name="property_type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="SFR">Single Family</option>
+              <option value="CONDO">Condo</option>
+              <option value="MULTI_FAMILY">Multi-Family</option>
+              <option value="RURAL_RESIDENTIAL">Rural Residential</option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-32">
+            <label class="block text-xs text-gray-400 mb-1">Horizon (months)</label>
+            <select name="horizon" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="6">6 months</option>
+              <option value="12" selected>12 months</option>
+              <option value="18">18 months</option>
+              <option value="24">24 months</option>
+            </select>
+          </div>
+          <button type="submit"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2 whitespace-nowrap">
+            <span id="fc-btn-text">Run Forecast</span>
+            <div id="fc-spinner" class="spinner hidden"></div>
+          </button>
+        </form>
+      </div>
+
+      <div id="forecast-result" class="hidden bg-gray-900 rounded-2xl p-6 border border-gray-800">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="text-sm font-semibold" id="fc-title">Forecast</h3>
+            <p class="text-xs text-gray-500 mt-0.5" id="fc-subtitle"></p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-500">Projected end price</p>
+            <p class="text-lg font-bold text-indigo-400" id="fc-end-price">—</p>
+          </div>
+        </div>
+        <canvas id="forecast-chart" height="80"></canvas>
+      </div>
+
+      <div id="forecast-error" class="hidden bg-red-950 border border-red-800 rounded-2xl p-4 text-sm text-red-300 mt-4"></div>
+    </div>
+
+  </div><!-- /max-w -->
+
+<script>
+let forecastChart = null;
+
+function switchTab(name) {
+  ['avm','lead','forecast'].forEach(t => {
+    document.getElementById('tab-' + t).classList.remove('active');
+    document.getElementById('panel-' + t).classList.remove('active');
+  });
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function setLoading(prefix, on) {
+  document.getElementById(prefix + '-spinner').classList.toggle('hidden', !on);
+  document.getElementById(prefix + '-btn-text').style.opacity = on ? '0.5' : '1';
+}
+
+// ── AVM ─────────────────────────────────────────────────────────────
+document.getElementById('avm-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {};
+  fd.forEach((v, k) => { if (v) body[k] = isNaN(v) ? v : Number(v); });
+  setLoading('avm', true);
+  document.getElementById('avm-result').classList.add('hidden');
+  document.getElementById('avm-error').classList.add('hidden');
+  try {
+    const res = await fetch('/api/avm', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const d = json.data[0];
+    document.getElementById('avm-estimate').textContent = fmt(d.estimate);
+    document.getElementById('avm-range').textContent    = `Range: ${fmt(d.low)} – ${fmt(d.high)}`;
+    document.getElementById('avm-low-label').textContent  = fmt(d.low);
+    document.getElementById('avm-high-label').textContent = fmt(d.high);
+    const pct = ((d.estimate - d.low) / (d.high - d.low) * 100).toFixed(0);
+    document.getElementById('avm-bar').style.width    = pct + '%';
+    document.getElementById('avm-marker').style.left  = pct + '%';
+    document.getElementById('avm-result').classList.remove('hidden');
+  } catch(err) {
+    document.getElementById('avm-error').textContent = 'Error: ' + err.message;
+    document.getElementById('avm-error').classList.remove('hidden');
+  } finally { setLoading('avm', false); }
+});
+
+// ── Lead Scoring ─────────────────────────────────────────────────────
+document.getElementById('lead-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {};
+  fd.forEach((v, k) => { if (v) body[k] = isNaN(v) ? v : Number(v); });
+  setLoading('lead', true);
+  document.getElementById('lead-result').classList.add('hidden');
+  document.getElementById('lead-error').classList.add('hidden');
+  try {
+    const res = await fetch('/api/lead', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const score = json.data[0].lead_score;
+    const pct   = Math.round(score * 100);
+    const tier  = pct >= 65 ? 'hot' : pct >= 35 ? 'warm' : 'cool';
+    const colors = { hot: '#ef4444', warm: '#f59e0b', cool: '#3b82f6' };
+    const labels = { hot: '🔥 Hot Lead', warm: '☀ Warm Lead', cool: '❄ Cool Lead' };
+    const bgCls  = { hot: 'bg-red-900 text-red-300', warm: 'bg-yellow-900 text-yellow-300', cool: 'bg-blue-900 text-blue-300' };
+
+    document.getElementById('lead-score-pct').textContent = pct + '%';
+    document.getElementById('lead-tier-label').textContent = tier.toUpperCase();
+    document.getElementById('lead-tier-label').style.color = colors[tier];
+
+    const arc = document.getElementById('lead-arc');
+    arc.style.stroke = colors[tier];
+    arc.style.strokeDashoffset = 314 - (314 * score);
+
+    const badge = document.getElementById('lead-tier-badge');
+    badge.textContent = labels[tier];
+    badge.className = 'px-4 py-1.5 rounded-full text-sm font-semibold mb-6 ' + bgCls[tier];
+
+    document.getElementById('lead-pointer').style.left = pct + '%';
+    document.getElementById('lead-result').classList.remove('hidden');
+  } catch(err) {
+    document.getElementById('lead-error').textContent = 'Error: ' + err.message;
+    document.getElementById('lead-error').classList.remove('hidden');
+  } finally { setLoading('lead', false); }
+});
+
+// ── Price Forecast ───────────────────────────────────────────────────
+document.getElementById('forecast-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd   = new FormData(e.target);
+  const body = { state: fd.get('state'), property_type: fd.get('property_type'), horizon: Number(fd.get('horizon')) };
+  setLoading('fc', true);
+  document.getElementById('forecast-result').classList.add('hidden');
+  document.getElementById('forecast-error').classList.add('hidden');
+  try {
+    const res = await fetch('/api/forecast', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const rows = json.data;
+    if (!rows || rows.length === 0) throw new Error('No forecast data returned for this state/type combination.');
+
+    const labels = rows.map(r => r.forecast_month ? r.forecast_month.slice(0,7) : '');
+    const prices = rows.map(r => r.forecast_price);
+    const lows   = rows.map(r => r.forecast_price_low);
+    const highs  = rows.map(r => r.forecast_price_high);
+
+    document.getElementById('fc-title').textContent    = `${body.state} — ${body.property_type}`;
+    document.getElementById('fc-subtitle').textContent = `${body.horizon}-month price trend forecast`;
+    document.getElementById('fc-end-price').textContent = fmt(prices[prices.length - 1]);
+
+    if (forecastChart) forecastChart.destroy();
+    const ctx = document.getElementById('forecast-chart').getContext('2d');
+    forecastChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Forecast',
+            data: prices,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.15)',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            fill: false,
+            tension: 0.4,
+          },
+          {
+            label: 'Upper bound',
+            data: highs,
+            borderColor: 'rgba(99,102,241,0.3)',
+            borderDash: [4,4],
+            borderWidth: 1,
+            pointRadius: 0,
+            fill: '+1',
+            backgroundColor: 'rgba(99,102,241,0.05)',
+            tension: 0.4,
+          },
+          {
+            label: 'Lower bound',
+            data: lows,
+            borderColor: 'rgba(99,102,241,0.3)',
+            borderDash: [4,4],
+            borderWidth: 1,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.4,
+          },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + fmt(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#1f2937' }, ticks: { color: '#6b7280', font: { size: 11 } } },
+          y: {
+            grid: { color: '#1f2937' },
+            ticks: {
+              color: '#6b7280',
+              font: { size: 11 },
+              callback: v => '$' + (v/1000).toFixed(0) + 'k'
+            }
+          }
+        }
+      }
+    });
+    document.getElementById('forecast-result').classList.remove('hidden');
+  } catch(err) {
+    document.getElementById('forecast-error').textContent = 'Error: ' + err.message;
+    document.getElementById('forecast-error').classList.remove('hidden');
+  } finally { setLoading('fc', false); }
+});
+</script>
+</body>
+</html>
