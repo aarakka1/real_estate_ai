@@ -931,6 +931,18 @@ class CombinedRealEstateModel(mlflow.pyfunc.PythonModel):
 
     def load_context(self, context):
         """MLflow calls this before the first predict() — loads sub-models from artifacts."""
+        # Apply NumPy 2.0 shims BEFORE importing prophet (triggered by loading
+        # the forecast artifact).  prophet==1.1.5 uses np.float_ in a class-level
+        # type annotation that is evaluated at import time.
+        import numpy as np
+        if not hasattr(np, "float_"):    np.float_    = np.float64
+        if not hasattr(np, "int_"):      np.int_      = np.int64
+        if not hasattr(np, "complex_"):  np.complex_  = np.complex128
+        if not hasattr(np, "object_"):   np.object_   = object
+        if not hasattr(np, "bool_"):     np.bool_     = np.bool_
+        if not hasattr(np, "obj2sctype"):
+            np.obj2sctype = lambda obj, default=None: np.dtype(obj).type
+
         import cloudpickle
         with open(context.artifacts["avm"],      "rb") as f: self.avm      = cloudpickle.load(f)
         with open(context.artifacts["lead_pre"], "rb") as f: self.lead_pre = cloudpickle.load(f)
@@ -1024,7 +1036,6 @@ def run_combined_model(avm_model, lead_pre, lead_cal, forecast_model):
                                     for c in AVM_ALL}])],
     })
     pip_reqs = [
-        "numpy<2.0",           # prophet==1.1.5 uses np.float_ (removed in NumPy 2.0)
         "xgboost==2.1.3",
         "lightgbm==4.5.0",
         "prophet==1.1.5",
