@@ -1,0 +1,16 @@
+# Dataset (too large for git — download from Kaggle)
+realtor-data.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# macOS
+.DS_Store
+
+# Notebooks / IDE
+.ipynb_checkpoints/
+.vscode/
+.idea/
