@@ -21,9 +21,28 @@ def call_endpoint(model_type: str, payload: list):
     }
     resp = requests.post(ENDPOINT_URL, headers=headers, json=body, timeout=55)
     resp.raise_for_status()
+
     # MLflow pyfunc returns {"predictions": [{"result": "<json string>"}]}
-    raw = resp.json()["predictions"][0]["result"]
-    return json.loads(raw)
+    resp_json = resp.json()
+
+    # Handle both record-oriented and column-oriented MLflow response formats
+    preds = resp_json.get("predictions", resp_json)
+    if isinstance(preds, dict):
+        # column-oriented: {"result": ["..."]}
+        raw = preds["result"][0]
+    else:
+        # record-oriented: [{"result": "..."}]
+        raw = preds[0]["result"]
+
+    data = json.loads(raw)
+
+    # CombinedRealEstateModel wraps per-row errors as {"error": "..."}
+    if isinstance(data, list) and data and "error" in data[0]:
+        raise ValueError(data[0]["error"])
+    if isinstance(data, dict) and "error" in data:
+        raise ValueError(data["error"])
+
+    return data
 
 
 
