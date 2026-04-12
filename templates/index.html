@@ -325,6 +325,26 @@ function setLoading(prefix, on) {
   document.getElementById(prefix + '-btn-text').style.opacity = on ? '0.5' : '1';
 }
 
+async function safePost(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(
+      res.status === 504
+        ? 'Request timed out. The model endpoint may be warming up — wait 30 seconds and try again.'
+        : `Server returned a non-JSON response (HTTP ${res.status}). Check Render logs.`
+    );
+  }
+  if (!json.ok) throw new Error(json.error);
+  return json.data;
+}
+
 // ── AVM ─────────────────────────────────────────────────────────────
 document.getElementById('avm-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -335,12 +355,8 @@ document.getElementById('avm-form').addEventListener('submit', async e => {
   document.getElementById('avm-result').classList.add('hidden');
   document.getElementById('avm-error').classList.add('hidden');
   try {
-    const res = await fetch('/api/avm', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error);
-    const d = json.data[0];
+    const data = await safePost('/api/avm', body);
+    const d = data[0];
     document.getElementById('avm-estimate').textContent = fmt(d.estimate);
     document.getElementById('avm-range').textContent    = `Range: ${fmt(d.low)} – ${fmt(d.high)}`;
     document.getElementById('avm-low-label').textContent  = fmt(d.low);
@@ -365,12 +381,8 @@ document.getElementById('lead-form').addEventListener('submit', async e => {
   document.getElementById('lead-result').classList.add('hidden');
   document.getElementById('lead-error').classList.add('hidden');
   try {
-    const res = await fetch('/api/lead', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error);
-    const score = json.data[0].lead_score;
+    const data = await safePost('/api/lead', body);
+    const score = data[0].lead_score;
     const pct   = Math.round(score * 100);
     const tier  = pct >= 65 ? 'hot' : pct >= 35 ? 'warm' : 'cool';
     const colors = { hot: '#ef4444', warm: '#f59e0b', cool: '#3b82f6' };
@@ -406,12 +418,7 @@ document.getElementById('forecast-form').addEventListener('submit', async e => {
   document.getElementById('forecast-result').classList.add('hidden');
   document.getElementById('forecast-error').classList.add('hidden');
   try {
-    const res = await fetch('/api/forecast', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error);
-    const rows = json.data;
+    const rows = await safePost('/api/forecast', body);
     if (!rows || rows.length === 0) throw new Error('No forecast data returned for this state/type combination.');
 
     const labels = rows.map(r => r.forecast_month ? r.forecast_month.slice(0,7) : '');

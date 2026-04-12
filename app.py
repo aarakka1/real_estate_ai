@@ -19,11 +19,12 @@ def call_endpoint(model_type: str, payload: list):
             "payload":    json.dumps(payload),
         }]
     }
-    resp = requests.post(ENDPOINT_URL, headers=headers, json=body, timeout=120)
+    resp = requests.post(ENDPOINT_URL, headers=headers, json=body, timeout=55)
     resp.raise_for_status()
     # MLflow pyfunc returns {"predictions": [{"result": "<json string>"}]}
     raw = resp.json()["predictions"][0]["result"]
     return json.loads(raw)
+
 
 
 @app.route("/")
