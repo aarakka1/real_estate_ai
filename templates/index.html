@@ -346,11 +346,15 @@ async function safePost(url, body) {
 }
 
 // ── AVM ─────────────────────────────────────────────────────────────
+// Fields that must stay as strings (categorical model features)
+const AVM_STR_FIELDS  = new Set(['state','zip_code','property_type']);
+const LEAD_STR_FIELDS = new Set(['state','property_type']);
+
 document.getElementById('avm-form').addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const body = {};
-  fd.forEach((v, k) => { if (v) body[k] = isNaN(v) ? v : Number(v); });
+  fd.forEach((v, k) => { if (v !== '') body[k] = AVM_STR_FIELDS.has(k) ? String(v) : (isNaN(v) ? v : Number(v)); });
   setLoading('avm', true);
   document.getElementById('avm-result').classList.add('hidden');
   document.getElementById('avm-error').classList.add('hidden');
@@ -376,7 +380,7 @@ document.getElementById('lead-form').addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const body = {};
-  fd.forEach((v, k) => { if (v) body[k] = isNaN(v) ? v : Number(v); });
+  fd.forEach((v, k) => { if (v !== '') body[k] = LEAD_STR_FIELDS.has(k) ? String(v) : (isNaN(v) ? v : Number(v)); });
   setLoading('lead', true);
   document.getElementById('lead-result').classList.add('hidden');
   document.getElementById('lead-error').classList.add('hidden');
