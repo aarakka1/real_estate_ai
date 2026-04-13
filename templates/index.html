@@ -75,8 +75,15 @@
             </div>
             <div class="min-w-28">
               <label class="block text-xs text-gray-400 mb-1">Lot Size (acres)</label>
-              <input name="acre_lot" type="number" min="0" step="0.01" placeholder="0.25"
-                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+              <select name="acre_lot" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <option value="">Select...</option>
+                <option value="0.05">Under 0.1 acres</option>
+                <option value="0.18">0.1 – 0.25 acres</option>
+                <option value="0.35" selected>0.25 – 0.5 acres</option>
+                <option value="0.75">0.5 – 1 acre</option>
+                <option value="2.5">1 – 5 acres</option>
+                <option value="7.5">5+ acres</option>
+              </select>
             </div>
             <div class="flex-1 min-w-36">
               <label class="block text-xs text-gray-400 mb-1">State</label>
