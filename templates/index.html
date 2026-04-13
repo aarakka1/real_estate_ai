@@ -41,65 +41,69 @@
       <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 mb-6">
         <h2 class="text-base font-semibold mb-1">Automated Valuation Model</h2>
         <p class="text-xs text-gray-500 mb-5">Get an instant AI estimate for any US property.</p>
-        <form id="avm-form" class="flex flex-wrap gap-4 items-end">
-          <div class="min-w-20">
-            <label class="block text-xs text-gray-400 mb-1">Bedrooms</label>
-            <input name="bed" type="number" min="0" max="20" placeholder="3"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+        <form id="avm-form">
+          <div class="flex flex-wrap gap-4 items-end mb-5">
+            <div class="min-w-20">
+              <label class="block text-xs text-gray-400 mb-1">Bedrooms</label>
+              <input name="bed" type="number" min="0" max="20" placeholder="3"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div class="min-w-20">
+              <label class="block text-xs text-gray-400 mb-1">Bathrooms</label>
+              <input name="bath" type="number" min="0" max="20" step="0.5" placeholder="2"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div class="min-w-32">
+              <label class="block text-xs text-gray-400 mb-1">House Size (sq ft)</label>
+              <input name="house_size" type="number" min="0" placeholder="1800"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div class="min-w-28">
+              <label class="block text-xs text-gray-400 mb-1">Lot Size (acres)</label>
+              <input name="acre_lot" type="number" min="0" step="0.01" placeholder="0.25"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div class="flex-1 min-w-36">
+              <label class="block text-xs text-gray-400 mb-1">State</label>
+              <select name="state" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <option value="">Select state...</option>
+                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+                <option>Wisconsin</option><option>Wyoming</option>
+              </select>
+            </div>
+            <div class="min-w-24">
+              <label class="block text-xs text-gray-400 mb-1">Zip Code</label>
+              <input name="zip_code" type="text" maxlength="5" placeholder="90210"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            </div>
+            <div class="min-w-36">
+              <label class="block text-xs text-gray-400 mb-1">Property Type</label>
+              <select name="property_type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <option value="SFR">Single Family</option>
+                <option value="CONDO">Condo</option>
+                <option value="MULTI_FAMILY">Multi-Family</option>
+                <option value="RURAL_RESIDENTIAL">Rural Residential</option>
+              </select>
+            </div>
           </div>
-          <div class="min-w-20">
-            <label class="block text-xs text-gray-400 mb-1">Bathrooms</label>
-            <input name="bath" type="number" min="0" max="20" step="0.5" placeholder="2"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+          <div class="flex justify-center">
+            <button type="submit"
+              class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-10 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2">
+              <span id="avm-btn-text">Estimate Value</span>
+              <div id="avm-spinner" class="spinner hidden"></div>
+            </button>
           </div>
-          <div class="min-w-32">
-            <label class="block text-xs text-gray-400 mb-1">House Size (sq ft)</label>
-            <input name="house_size" type="number" min="0" placeholder="1800"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-          </div>
-          <div class="min-w-28">
-            <label class="block text-xs text-gray-400 mb-1">Lot Size (acres)</label>
-            <input name="acre_lot" type="number" min="0" step="0.01" placeholder="0.25"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-          </div>
-          <div class="flex-1 min-w-36">
-            <label class="block text-xs text-gray-400 mb-1">State</label>
-            <select name="state" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
-              <option value="">Select state...</option>
-              <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
-              <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
-              <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-              <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
-              <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
-              <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-              <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
-              <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
-              <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-              <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
-              <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
-              <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
-              <option>Wisconsin</option><option>Wyoming</option>
-            </select>
-          </div>
-          <div class="min-w-24">
-            <label class="block text-xs text-gray-400 mb-1">Zip Code</label>
-            <input name="zip_code" type="text" maxlength="5" placeholder="90210"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-          </div>
-          <div class="min-w-36">
-            <label class="block text-xs text-gray-400 mb-1">Property Type</label>
-            <select name="property_type" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
-              <option value="SFR">Single Family</option>
-              <option value="CONDO">Condo</option>
-              <option value="MULTI_FAMILY">Multi-Family</option>
-              <option value="RURAL_RESIDENTIAL">Rural Residential</option>
-            </select>
-          </div>
-          <button type="submit"
-            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2 whitespace-nowrap">
-            <span id="avm-btn-text">Estimate Value</span>
-            <div id="avm-spinner" class="spinner hidden"></div>
-          </button>
         </form>
       </div>
 
