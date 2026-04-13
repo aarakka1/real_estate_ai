@@ -51,6 +51,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/health")
+def health():
+    return jsonify({"ok": True})
+
+
 @app.route("/api/avm", methods=["POST"])
 def avm():
     try:

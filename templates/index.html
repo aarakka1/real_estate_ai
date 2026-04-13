@@ -326,6 +326,13 @@
 <script>
 let forecastChart = null;
 
+// Warmup: ping Render + Databricks on page load so they're hot when user submits
+(function warmup() {
+  const dummy = {bed:3,bath:2,house_size:1500,acre_lot:0.25,state:"California",zip_code:"90210",property_type:"SFR"};
+  fetch('/api/avm', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(dummy)})
+    .catch(() => {}); // silently ignore any error
+})();
+
 function switchTab(name) {
   ['avm','lead','forecast'].forEach(t => {
     document.getElementById('tab-' + t).classList.remove('active');
