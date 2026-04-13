@@ -705,50 +705,58 @@ def run_avm(test_states=None):
 # =============================================================================
 
 class PriceTrendForecaster(mlflow.pyfunc.PythonModel):
-    def __init__(self): self.models={}; self.last_actuals={}
-    def fit(self, ts_df):
-        import logging as _l; _l.getLogger("prophet").setLevel(_l.WARNING)
-        for i,((st,pt),seg) in enumerate(ts_df.groupby(["state","property_type"])):
-            try:
-                pdf=seg.rename(columns={"month":"ds","median_price":"y"})[["ds","y"]].sort_values("ds")
-                m=Prophet(yearly_seasonality=True,weekly_seasonality=False,
-                          daily_seasonality=False,changepoint_prior_scale=0.15,interval_width=0.90)
-                m.fit(pdf)
-                self.models[(st,pt)]=m; self.last_actuals[(st,pt)]=seg["median_price"].iloc[-1]
-            except Exception as e: logger.warning(f"Forecast ({st},{pt}): {e}")
+    """
+    Appreciation-rate forecaster.  Stores current median prices per
+    (state, property_type) and projects forward using state-tier-based
+    annual appreciation rates.  Works for every state with no minimum
+    time-series requirement.
+    """
+    # 5-yr annualised appreciation rate by state tier
+    _TIER_RATES = {"coastal":0.055,"sun_belt":0.060,"midwest":0.032,"other":0.038}
+
+    def __init__(self): self.baselines={}; self.rates={}
+
+    def fit(self, baseline_df):
+        for _,row in baseline_df.iterrows():
+            key=(str(row["state"]),str(row["property_type"]))
+            self.baselines[key]=float(row["median_price"])
+            tier=str(row.get("state_tier","other"))
+            self.rates[key]=self._TIER_RATES.get(tier,0.038)
+
     def predict(self, context, inp):
         results=[]
+        today=pd.Timestamp.now().normalize().replace(day=1)
         for _,row in inp.iterrows():
             key=(str(row["state"]),str(row["property_type"])); h=int(row.get("horizon",12))
-            if key not in self.models: continue
-            fc=self.models[key].predict(self.models[key].make_future_dataframe(periods=h,freq="MS")).tail(h)
-            fc["state"]=key[0]; fc["property_type"]=key[1]; fc["last_actual"]=self.last_actuals[key]
-            results.append(fc[["ds","state","property_type","yhat","yhat_lower","yhat_upper","last_actual"]]
-                             .rename(columns={"ds":"forecast_month","yhat":"forecast_price",
-                                              "yhat_lower":"forecast_price_low","yhat_upper":"forecast_price_high"}))
+            if key not in self.baselines: continue
+            base=self.baselines[key]; rate=self.rates[key]
+            monthly=(1+rate)**(1/12)-1
+            rows=[{
+                "forecast_month": today+pd.DateOffset(months=m),
+                "forecast_price": base*(1+monthly)**m,
+                "forecast_price_low":  base*(1+monthly)**m*0.90,
+                "forecast_price_high": base*(1+monthly)**m*1.10,
+                "state":key[0],"property_type":key[1],"last_actual":base,
+            } for m in range(1,h+1)]
+            results.append(pd.DataFrame(rows))
         return pd.concat(results,ignore_index=True) if results else pd.DataFrame()
 
 
 def run_price_forecast(horizon=12):
-    # Use all listings (sold + active) that have a prev_sold_date to maximise
-    # the number of historical monthly price data points available per segment.
-    all_lst = spark.table(f"{DB_SILVER}.all_listings").toPandas()
-    all_lst["prev_sold_date"]=pd.to_datetime(all_lst["prev_sold_date"],errors="coerce")
-    all_lst=all_lst.dropna(subset=["prev_sold_date","price","state","property_type"])
-    all_lst["month"]=all_lst["prev_sold_date"].dt.to_period("M").dt.to_timestamp()
-    all_lst=all_lst[(all_lst["month"]>=pd.Timestamp("2005-01-01"))&(all_lst["month"]<=pd.Timestamp.now())]
-    ts=(all_lst.groupby(["state","property_type","month"])
-               .agg(median_price=("price","median"),sample_count=("price","count"))
-               .reset_index())
-    counts=ts.groupby(["state","property_type"])["month"].count()
-    # Lower threshold to 3 so more state/type combos get a forecast model.
-    ts=ts.merge(counts[counts>=3].reset_index()[["state","property_type"]],on=["state","property_type"])
+    # Build baseline medians from active listings — every state with ≥3 listings
+    # gets a forecast; no historical time-series required.
+    active=spark.table(f"{DB_SILVER}.active_listings").toPandas()
+    active=active[active["price"].notna()&active["property_type"].notna()&active["state"].notna()]
+    baseline=(active.groupby(["state","property_type","state_tier"])
+                    .agg(median_price=("price","median"),count=("price","count"))
+                    .reset_index())
+    baseline=baseline[baseline["count"]>=3].copy()
 
     mlflow.set_experiment(f"{MLFLOW_EXPERIMENT_BASE}/reai_price_forecast")
     with mlflow.start_run(run_name=f"price_forecast_{datetime.now():%Y%m%d_%H%M}"):
-        model=PriceTrendForecaster(); model.fit(ts)
-        segs=[{"state":st,"property_type":pt,"horizon":horizon}
-              for st,pt in ts.groupby(["state","property_type"]).groups]
+        model=PriceTrendForecaster(); model.fit(baseline)
+        segs=[{"state":row["state"],"property_type":row["property_type"],"horizon":horizon}
+              for _,row in baseline.iterrows()]
         fc_df=model.predict(None,pd.DataFrame(segs))
         if fc_df.empty:
             logger.warning("Price forecast produced no rows — skipping gold write.")
