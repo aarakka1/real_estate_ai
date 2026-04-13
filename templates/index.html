@@ -129,6 +129,27 @@
             Estimate based on comparable sales and market data for the zip code and property type. Actual value may vary.
           </div>
         </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-800">
+          <div class="bg-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-1">Price per sq ft</p>
+            <p class="text-lg font-semibold text-white" id="avm-ppsf">—</p>
+          </div>
+          <div class="bg-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-1">Est. monthly mortgage</p>
+            <p class="text-lg font-semibold text-white" id="avm-mortgage">—</p>
+            <p class="text-xs text-gray-600 mt-0.5">30-yr fixed · 7% · 20% down</p>
+          </div>
+          <div class="bg-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-1">Est. monthly rent</p>
+            <p class="text-lg font-semibold text-white" id="avm-rent">—</p>
+            <p class="text-xs text-gray-600 mt-0.5">~0.7% of value</p>
+          </div>
+          <div class="bg-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-1">Est. annual property tax</p>
+            <p class="text-lg font-semibold text-white" id="avm-tax">—</p>
+            <p class="text-xs text-gray-600 mt-0.5">~1.1% of value</p>
+          </div>
+        </div>
       </div>
 
       <div id="avm-error" class="hidden bg-red-950 border border-red-800 rounded-2xl p-4 text-sm text-red-300 mt-4"></div>
@@ -366,6 +387,17 @@ document.getElementById('avm-form').addEventListener('submit', async e => {
     const pct = ((d.estimate - d.low) / (d.high - d.low) * 100).toFixed(0);
     document.getElementById('avm-bar').style.width    = pct + '%';
     document.getElementById('avm-marker').style.left  = pct + '%';
+    // Derived stats
+    const houseSize = body.house_size || 0;
+    const ppsf = houseSize > 0 ? fmt(d.estimate / houseSize) : 'N/A';
+    const loanAmt  = d.estimate * 0.80;
+    const monthlyRate = 0.07 / 12;
+    const numPayments = 360;
+    const mortgage = loanAmt * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+    document.getElementById('avm-ppsf').textContent     = houseSize > 0 ? ppsf + '/ft²' : 'N/A';
+    document.getElementById('avm-mortgage').textContent = fmt(mortgage) + '/mo';
+    document.getElementById('avm-rent').textContent     = fmt(d.estimate * 0.007) + '/mo';
+    document.getElementById('avm-tax').textContent      = fmt(d.estimate * 0.011) + '/yr';
     document.getElementById('avm-result').classList.remove('hidden');
   } catch(err) {
     document.getElementById('avm-error').textContent = 'Error: ' + err.message;
