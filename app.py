@@ -69,7 +69,17 @@ def avm():
 @app.route("/api/lead", methods=["POST"])
 def lead():
     try:
-        data   = request.json
+        data = dict(request.json)
+        # Derive hold-period bucket features from years_since_last_sale.
+        # The model was trained on these binary flags; without them it always
+        # predicts near-zero probability.
+        yrs = float(data.get("years_since_last_sale", 0) or 0)
+        data["hold_0_2"]       = 1 if yrs < 2  else 0
+        data["hold_2_5"]       = 1 if 2  <= yrs < 5  else 0
+        data["hold_5_10"]      = 1 if 5  <= yrs < 10 else 0
+        data["hold_10_plus"]   = 1 if yrs >= 10 else 0
+        data["long_hold"]      = 1 if yrs >= 10 else 0
+        data["very_long_hold"] = 1 if yrs >= 15 else 0
         result = call_endpoint("lead_scoring", [data])
         return jsonify({"ok": True, "data": result})
     except Exception as e:
