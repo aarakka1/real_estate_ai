@@ -730,15 +730,19 @@ class PriceTrendForecaster(mlflow.pyfunc.PythonModel):
 
 
 def run_price_forecast(horizon=12):
-    sold = spark.table(f"{DB_SILVER}.sold_listings").toPandas()
-    sold["prev_sold_date"]=pd.to_datetime(sold["prev_sold_date"]); sold=sold.dropna(subset=["prev_sold_date"])
-    sold["month"]=sold["prev_sold_date"].dt.to_period("M").dt.to_timestamp()
-    sold=sold[(sold["month"]>=pd.Timestamp("2010-01-01"))&(sold["month"]<=pd.Timestamp.now())]
-    ts=(sold.groupby(["state","property_type","month"])
-            .agg(median_price=("price","median"),sample_count=("price","count"))
-            .reset_index())
+    # Use all listings (sold + active) that have a prev_sold_date to maximise
+    # the number of historical monthly price data points available per segment.
+    all_lst = spark.table(f"{DB_SILVER}.all_listings").toPandas()
+    all_lst["prev_sold_date"]=pd.to_datetime(all_lst["prev_sold_date"],errors="coerce")
+    all_lst=all_lst.dropna(subset=["prev_sold_date","price","state","property_type"])
+    all_lst["month"]=all_lst["prev_sold_date"].dt.to_period("M").dt.to_timestamp()
+    all_lst=all_lst[(all_lst["month"]>=pd.Timestamp("2005-01-01"))&(all_lst["month"]<=pd.Timestamp.now())]
+    ts=(all_lst.groupby(["state","property_type","month"])
+               .agg(median_price=("price","median"),sample_count=("price","count"))
+               .reset_index())
     counts=ts.groupby(["state","property_type"])["month"].count()
-    ts=ts.merge(counts[counts>=6].reset_index()[["state","property_type"]],on=["state","property_type"])
+    # Lower threshold to 3 so more state/type combos get a forecast model.
+    ts=ts.merge(counts[counts>=3].reset_index()[["state","property_type"]],on=["state","property_type"])
 
     mlflow.set_experiment(f"{MLFLOW_EXPERIMENT_BASE}/reai_price_forecast")
     with mlflow.start_run(run_name=f"price_forecast_{datetime.now():%Y%m%d_%H%M}"):
