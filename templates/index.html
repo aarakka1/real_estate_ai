@@ -257,14 +257,14 @@
     <div id="panel-forecast" class="tab-panel">
       <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 mb-6">
         <h2 class="text-base font-semibold mb-1">Price Trend Forecast</h2>
-        <p class="text-xs text-gray-500 mb-5">12-month price forecast by state and property type.</p>
+        <p class="text-xs text-gray-500 mb-5">12-month price forecast by state and property type. Best results for high-volume states like California, Texas, Florida, and New York.</p>
         <form id="forecast-form" class="flex flex-wrap gap-4 items-end">
           <div class="flex-1 min-w-40">
             <label class="block text-xs text-gray-400 mb-1">State</label>
             <select name="state" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
               <option value="">Select state...</option>
               <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
-              <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+              <option selected>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
               <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
               <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
               <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
@@ -460,7 +460,7 @@ document.getElementById('forecast-form').addEventListener('submit', async e => {
   document.getElementById('forecast-error').classList.add('hidden');
   try {
     const rows = await safePost('/api/forecast', body);
-    if (!rows || rows.length === 0) throw new Error('No forecast data returned for this state/type combination.');
+    if (!rows || rows.length === 0) throw new Error('No forecast data for this combination. The model requires sufficient historical sales data — try California, Texas, Florida, or New York with Single Family.');
 
     const labels = rows.map(r => r.forecast_month ? r.forecast_month.slice(0,7) : '');
     const prices = rows.map(r => r.forecast_price);
