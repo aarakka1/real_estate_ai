@@ -53,6 +53,14 @@ def index():
 
 @app.route("/health")
 def health():
+    # Ping Databricks endpoint with a minimal dummy request to keep it warm.
+    # UptimeRobot hitting /health every 5 min keeps both Render + Databricks hot.
+    try:
+        dummy = {"bed":3,"bath":2,"house_size":1500,"acre_lot":0.25,
+                 "state":"California","zip_code":"90210","property_type":"SFR"}
+        call_endpoint("avm", [dummy])
+    except Exception:
+        pass  # Don't fail health check if Databricks is temporarily unavailable
     return jsonify({"ok": True})
 
 
