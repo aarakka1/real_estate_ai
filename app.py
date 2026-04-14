@@ -7,6 +7,20 @@ DATABRICKS_HOST  = os.environ.get("DATABRICKS_HOST", "https://dbc-496010ba-2046.
 DATABRICKS_TOKEN = os.environ.get("DATABRICKS_TOKEN", "")
 ENDPOINT_URL     = f"{DATABRICKS_HOST}/serving-endpoints/reai-combined/invocations"
 
+# Pre-filled default inputs matching the form defaults
+_AVM_DEFAULT  = {"bed":3,"bath":2,"house_size":1800,"acre_lot":0.35,
+                 "state":"California","zip_code":"90210","property_type":"SFR"}
+_LEAD_DEFAULT = {"years_since_last_sale":7.5,"price":450000,"bed":3,
+                 "house_size":1800,"state":"California","property_type":"SFR",
+                 "hold_0_2":0,"hold_2_5":0,"hold_5_10":1,"hold_10_plus":0,
+                 "long_hold":0,"very_long_hold":0}
+_FORECAST_DEFAULT = {"state":"California","property_type":"SFR","horizon":12}
+
+# In-memory cache: keyed by (model_type, frozenset of input items)
+_cache = {}
+
+def _cache_key(model_type, payload):
+    return (model_type, json.dumps(payload, sort_keys=True))
 
 def call_endpoint(model_type: str, payload: list):
     headers = {
@@ -22,21 +36,14 @@ def call_endpoint(model_type: str, payload: list):
     resp = requests.post(ENDPOINT_URL, headers=headers, json=body, timeout=55)
     resp.raise_for_status()
 
-    # MLflow pyfunc returns {"predictions": [{"result": "<json string>"}]}
-    resp_json = resp.json()
-
-    # Handle both record-oriented and column-oriented MLflow response formats
-    preds = resp_json.get("predictions", resp_json)
+    preds = resp.json().get("predictions", resp.json())
     if isinstance(preds, dict):
-        # column-oriented: {"result": ["..."]}
         raw = preds["result"][0]
     else:
-        # record-oriented: [{"result": "..."}]
         raw = preds[0]["result"]
 
     data = json.loads(raw)
 
-    # CombinedRealEstateModel wraps per-row errors as {"error": "..."}
     if isinstance(data, list) and data and "error" in data[0]:
         raise ValueError(data[0]["error"])
     if isinstance(data, dict) and "error" in data:
@@ -44,6 +51,14 @@ def call_endpoint(model_type: str, payload: list):
 
     return data
 
+
+def call_cached(model_type: str, payload: list):
+    key = _cache_key(model_type, payload)
+    if key in _cache:
+        return _cache[key]
+    result = call_endpoint(model_type, payload)
+    _cache[key] = result
+    return result
 
 
 @app.route("/")
@@ -53,14 +68,13 @@ def index():
 
 @app.route("/health")
 def health():
-    # Ping Databricks endpoint with a minimal dummy request to keep it warm.
-    # UptimeRobot hitting /health every 5 min keeps both Render + Databricks hot.
+    # Warms up Databricks and pre-populates cache with default inputs.
     try:
-        dummy = {"bed":3,"bath":2,"house_size":1500,"acre_lot":0.25,
-                 "state":"California","zip_code":"90210","property_type":"SFR"}
-        call_endpoint("avm", [dummy])
+        _cache[_cache_key("avm",          [_AVM_DEFAULT])]      = call_endpoint("avm",          [_AVM_DEFAULT])
+        _cache[_cache_key("lead_scoring", [_LEAD_DEFAULT])]     = call_endpoint("lead_scoring", [_LEAD_DEFAULT])
+        _cache[_cache_key("price_forecast",[_FORECAST_DEFAULT])] = call_endpoint("price_forecast",[_FORECAST_DEFAULT])
     except Exception:
-        pass  # Don't fail health check if Databricks is temporarily unavailable
+        pass
     return jsonify({"ok": True})
 
 
@@ -68,7 +82,7 @@ def health():
 def avm():
     try:
         data   = request.json
-        result = call_endpoint("avm", [data])
+        result = call_cached("avm", [data])
         return jsonify({"ok": True, "data": result})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -78,9 +92,6 @@ def avm():
 def lead():
     try:
         data = dict(request.json)
-        # Derive hold-period bucket features from years_since_last_sale.
-        # The model was trained on these binary flags; without them it always
-        # predicts near-zero probability.
         yrs = float(data.get("years_since_last_sale", 0) or 0)
         data["hold_0_2"]       = 1 if yrs < 2  else 0
         data["hold_2_5"]       = 1 if 2  <= yrs < 5  else 0
@@ -88,7 +99,7 @@ def lead():
         data["hold_10_plus"]   = 1 if yrs >= 10 else 0
         data["long_hold"]      = 1 if yrs >= 10 else 0
         data["very_long_hold"] = 1 if yrs >= 15 else 0
-        result = call_endpoint("lead_scoring", [data])
+        result = call_cached("lead_scoring", [data])
         return jsonify({"ok": True, "data": result})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -98,7 +109,7 @@ def lead():
 def forecast():
     try:
         data   = request.json
-        result = call_endpoint("price_forecast", [data])
+        result = call_cached("price_forecast", [data])
         return jsonify({"ok": True, "data": result})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
