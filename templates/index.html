@@ -39,6 +39,10 @@
       <h1 class="text-4xl font-bold text-white tracking-tight">AI Real Estate Intelligence</h1>
       <p class="text-sm text-gray-400 mt-3 max-w-xl mx-auto">A machine learning platform trained on 2M+ US real estate transactions to estimate property values, score motivated sellers, and forecast regional price trends.</p>
       <p class="text-xs text-gray-600 mt-2">Powered by Databricks MLflow</p>
+      <div id="warmup-banner" class="inline-flex items-center gap-2 mt-3 px-3 py-1.5 bg-gray-800 rounded-full text-xs text-gray-400">
+        <div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>
+        <span>Warming up model endpoint — first prediction may take up to 30s</span>
+      </div>
     </div>
   </div>
 
@@ -415,7 +419,14 @@ let forecastChart = null;
 (function warmup() {
   const dummy = {bed:3,bath:2,house_size:1500,acre_lot:0.25,state:"California",zip_code:"90210",property_type:"SFR"};
   fetch('/api/avm', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(dummy)})
-    .catch(() => {}); // silently ignore any error
+    .then(() => {
+      const b = document.getElementById('warmup-banner');
+      if (b) { b.innerHTML = '✓ Model ready'; b.classList.add('text-green-400'); setTimeout(() => b.remove(), 2000); }
+    })
+    .catch(() => {
+      const b = document.getElementById('warmup-banner');
+      if (b) b.remove();
+    });
 })();
 
 function switchTab(name) {
