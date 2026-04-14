@@ -275,6 +275,19 @@
             </div>
           </div>
         </div>
+
+        <!-- Outreach strategy + score explanation -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-800">
+          <div class="bg-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Recommended Outreach</p>
+            <p class="text-sm font-semibold text-white mb-1" id="lead-outreach-title">—</p>
+            <p class="text-xs text-gray-400" id="lead-outreach-desc">—</p>
+          </div>
+          <div class="bg-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Score Explanation</p>
+            <ul class="space-y-1" id="lead-explanation"></ul>
+          </div>
+        </div>
       </div>
 
       <div id="lead-error" class="hidden bg-red-950 border border-red-800 rounded-2xl p-4 text-sm text-red-300 mt-4"></div>
@@ -470,6 +483,43 @@ document.getElementById('lead-form').addEventListener('submit', async e => {
     badge.className = 'px-4 py-1.5 rounded-full text-sm font-semibold mb-6 ' + bgCls[tier];
 
     document.getElementById('lead-pointer').style.left = pct + '%';
+
+    // Outreach strategy
+    const outreach = {
+      hot:  { title: 'Contact within 48 hours', desc: 'High motivation detected. Prioritise a direct call or personalised offer — this seller is likely actively considering a move.' },
+      warm: { title: 'Schedule a follow-up this week', desc: 'Moderate motivation signals. A market update email or CMA report can nudge this lead toward a decision.' },
+      cool: { title: 'Add to nurture campaign', desc: 'Low urgency. Keep this contact warm with quarterly market updates and check back in 6–12 months.' }
+    };
+    document.getElementById('lead-outreach-title').textContent = outreach[tier].title;
+    document.getElementById('lead-outreach-desc').textContent  = outreach[tier].desc;
+
+    // Score explanation
+    const yrs  = Number(body.years_since_last_sale) || 0;
+    const price = Number(body.price) || 0;
+    const explanations = [];
+    if (yrs >= 15) explanations.push({ text: 'Very long hold period — strong sell signal', positive: true });
+    else if (yrs >= 10) explanations.push({ text: 'Long hold period — likely built equity', positive: true });
+    else if (yrs >= 5)  explanations.push({ text: 'Moderate hold period — neutral signal', positive: null });
+    else                explanations.push({ text: 'Short hold period — unlikely to sell soon', positive: false });
+
+    if (price > 700000)      explanations.push({ text: 'High listing price — smaller buyer pool', positive: false });
+    else if (price > 300000) explanations.push({ text: 'Mid-range price — broad buyer appeal', positive: true });
+    else                     explanations.push({ text: 'Affordable price point — high demand segment', positive: true });
+
+    const state = body.state || '';
+    const coastals = ['California','New York','Washington','Massachusetts','Hawaii','Oregon','Connecticut','New Jersey'];
+    const sunbelt  = ['Florida','Texas','Arizona','Georgia','Nevada','North Carolina','Tennessee','Colorado'];
+    if (coastals.includes(state))     explanations.push({ text: 'Coastal market — high appreciation pressure', positive: true });
+    else if (sunbelt.includes(state)) explanations.push({ text: 'Sun Belt market — strong demand trends', positive: true });
+    else                              explanations.push({ text: 'Midwest / other market — stable conditions', positive: null });
+
+    const ul = document.getElementById('lead-explanation');
+    ul.innerHTML = explanations.map(e => {
+      const color = e.positive === true ? 'text-green-400' : e.positive === false ? 'text-red-400' : 'text-yellow-400';
+      const icon  = e.positive === true ? '↑' : e.positive === false ? '↓' : '→';
+      return `<li class="flex items-start gap-2 text-xs"><span class="${color} font-bold mt-0.5">${icon}</span><span class="text-gray-300">${e.text}</span></li>`;
+    }).join('');
+
     document.getElementById('lead-result').classList.remove('hidden');
   } catch(err) {
     document.getElementById('lead-error').textContent = 'Error: ' + err.message;
