@@ -184,8 +184,14 @@
         <form id="lead-form" class="flex flex-wrap gap-4 items-end">
           <div class="min-w-36">
             <label class="block text-xs text-gray-400 mb-1">Years Since Last Sale</label>
-            <input name="years_since_last_sale" type="number" min="0" max="50" step="0.5" value="8"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <select name="years_since_last_sale" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="1">Less than 2 years</option>
+              <option value="3.5">2 – 5 years</option>
+              <option value="7.5" selected>5 – 10 years</option>
+              <option value="12.5">10 – 15 years</option>
+              <option value="17.5">15 – 20 years</option>
+              <option value="22">20+ years</option>
+            </select>
           </div>
           <div class="min-w-40">
             <label class="block text-xs text-gray-400 mb-1">Listing Price ($)</label>
